@@ -1,9 +1,9 @@
 import aiohttp
 import asyncio
 import time
-from monitor import Monitor, Result
-from utils import RateLimiter
-from config import SETTINGS
+# from monitor import Monitor, Result
+# from utils import RateLimiter
+# from config import SETTINGS
 
 API_URL = "https://microcks.gin.dev.securingsam.io/rest/Reputation+API/1.0.0/domain/ranking/{domain}"
 HEADERS = {"Authorization": "Token I_am_under_stress_when_I_test"}

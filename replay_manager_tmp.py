@@ -1,7 +1,7 @@
 import time
 import signal
 from scapy.all import PcapReader, DNS, DNSQR
-from reputation_engine import AsyncReputationClient
+# from reputation_engine import AsyncReputationClient
 
 class TrafficReplayManager:
     def __init__(self, file_path):
