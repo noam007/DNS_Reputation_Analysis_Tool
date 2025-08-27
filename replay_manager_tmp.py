@@ -1,9 +1,7 @@
 import time
 import signal
 from scapy.all import PcapReader, DNS, DNSQR
-import subprocess
-import keyboard
-
+from reputation_engine import AsyncReputationClient
 
 class TrafficReplayManager:
     def __init__(self, file_path):
@@ -17,31 +15,21 @@ class TrafficReplayManager:
     def _process_pcap(self):
         """Internal method to process the PCAP file and send domains."""
         try:
-            while self.is_running:
-                # Start a subprocess (e.g., a long-running command)
-                process = subprocess.Popen(["ping", "google.com"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                if keyboard.is_pressed('ctrl+c'):
-                    self.is_running = True
-                    self.stop()
+            reader = PcapReader(self.file_path)
 
-                # Use PcapReader to read packets one by one
-                reader = PcapReader(self.file_path)
-                print("File opened. Starting traffic replay...")
+            for packet in reader:
+                # Check the state of self.is_running in each iteration
+                if not self.is_running:
+                    print("\nReplay stopped gracefully.")
+                    break
 
-                for packet in reader:
-                    # Check the state of self.is_running in each iteration
-                    if not self.is_running:
-                        print("\nReplay stopped gracefully.")
-                        break
+                self.packets_sent += 1
 
-                    self.packets_sent += 1
-
-                    if packet.haslayer(DNS) and packet.getlayer(DNS).qd is not None:
-                        dns_name = packet[DNSQR].qname.decode()
-                        self.domains_processed += 1
-                        # Pass the domain to the reputation engine here
-                        print(f"Domain query: {dns_name}")
-
+                if packet.haslayer(DNS) and packet.getlayer(DNS).qd is not None:
+                    dns_name = packet[DNSQR].qname.decode()
+                    self.domains_processed += 1
+                    # Pass the domain to the reputation engine here
+                    print(f"Domain query: {dns_name}")
 
         except FileNotFoundError:
             self.errors += 1
@@ -78,12 +66,17 @@ class TrafficReplayManager:
 
     def graceful_shutdown(self, signum, frame):
         """Handles graceful shutdown on Ctrl+C."""
-        print("\nCtrl+C detected! Initiating graceful shutdown...")
+        print(f"\nReceived signal: {signum}")
+        print("Exiting gracefully...")
         self.is_running = False
 
 
 if __name__ == "__main__":
     file_path = "big_example.pcap"
     manager = TrafficReplayManager(file_path)
+
+    # Attach the signal handler to Ctrl+C
     signal.signal(signal.SIGINT, manager.graceful_shutdown)
+
+    print("Press Ctrl+C to trigger the signal handler.")
     manager.start()
