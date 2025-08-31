@@ -3,73 +3,125 @@ import signal
 import asyncio
 import aiohttp
 from scapy.all import PcapReader, DNS, DNSQR
-from reputation_engine import Reputation
+from reputation_engine import Reputation  # Custom module to check domain reputation
 
+# -----------------------------
+# Simple cache for domain results
+# -----------------------------
+class ReputationCache:
+    """Simple cache with TTL (time-to-live) for storing reputation results of domains."""
+
+    def __init__(self, ttl_seconds=3600):
+        self.ttl = ttl_seconds
+        self._cache = {}  # Dictionary: domain -> (result, timestamp)
+
+    def get(self, domain):
+        """Retrieve cached result if it's still valid, otherwise return None."""
+        if domain in self._cache:
+            result, ts = self._cache[domain]
+            # Check if cache entry is still within TTL
+            if time.time() - ts < self.ttl:
+                return result
+            else:
+                # Expired entry → remove it
+                del self._cache[domain]
+        return None
+
+    def set(self, domain, result):
+        """Store result in cache with timestamp."""
+        self._cache[domain] = (result, time.time())
+
+
+# -----------------------------
+# Main class: manages PCAP replay and reputation lookups
+# -----------------------------
 class TrafficReplayManager:
-    def __init__(self, file_path):
+    def __init__(self, file_path, cache_ttl=3600):
         self.file_path = file_path
         self.is_running = False
         self.start_time = None
         self.packets_sent = 0
         self.errors = 0
         self.domains_processed = 0
-        self.domains = []  # collect domains here
+        self.domains = []  # Stores all DNS domains extracted from PCAP
+        self.cache = ReputationCache(ttl_seconds=cache_ttl)
 
     def _process_pcap(self):
-        """Extract domains from PCAP file instead of calling Reputation directly."""
+        """Extract DNS query domains from PCAP file"""
         try:
             reader = PcapReader(self.file_path)
-
             for packet in reader:
-                if not self.is_running:
-                    print("\nReplay stopped gracefully.")
-                    break
-
                 self.packets_sent += 1
 
                 if packet.haslayer(DNS) and packet.getlayer(DNS).qd is not None:
-                    dns_name = packet[DNSQR].qname.decode().rstrip(".")
-                    self.domains_processed += 1
-                    print(f"Domain query found: {dns_name}")
-                    self.domains.append(dns_name)
+                    try:
+                        # Check if Ctrl+C is pressed → Python raises KeyboardInterrupt automatically
+                        dns_name = packet[DNSQR].qname.decode().rstrip(".")
+                        self.domains_processed += 1
+                        print(f"Domain query found: {dns_name}")
+                        self.domains.append(dns_name)
+
+                    except KeyboardInterrupt:   # check for CTRL+C
+                        print("\nReplay stopped gracefully (Ctrl+C detected).")
+                        break
 
         except FileNotFoundError:
             self.errors += 1
             print(f"Error: File '{self.file_path}' not found.")
-
         except Exception as e:
             self.errors += 1
             print(f"An unexpected error occurred: {e}")
-
         finally:
             self.stop()
 
-    async def _query_reputation_bulk(self):
-        """Send all collected domains to VirusTotal concurrently."""
-        async with aiohttp.ClientSession() as session:
-            tasks = [Reputation(session, d) for d in self.domains]
-            results = await asyncio.gather(*tasks)
 
+    async def _query_and_cache(self, session, domain):
+        """Query reputation API for a domain with caching and error handling."""
+        cached_result = self.cache.get(domain)
+        if cached_result:
+            print(f"[Cache] {domain} -> {cached_result}")
+            return cached_result
+
+        try:
+            # Call the reputation API (async function from reputation_engine)
+            result = await Reputation(session, domain)
+        except Exception as e:
+            print(f"[Error] Domain {domain} failed: {e}")
+            result = {"domain": domain, "error": str(e)}
+
+        # Store result in cache for reuse
+        self.cache.set(domain, result)
+        return result
+
+    async def _query_reputation_bulk(self):
+        """Query reputation for all collected domains concurrently."""
+        async with aiohttp.ClientSession() as session:
+            # Create tasks for each domain query
+            tasks = [self._query_and_cache(session, d) for d in self.domains]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Print results
             print("\n--- Reputation Results ---")
             for res in results:
-                print(res)
+                if isinstance(res, Exception):
+                    print(f"[Error] Task failed: {res}")
+                else:
+                    print(res)
 
     def start(self):
-        """Starts the traffic replay process."""
+        """Starts the PCAP replay and reputation checking process."""
         self.is_running = True
         self.start_time = time.time()
         self._process_pcap()
-
-        # After extracting domains, run async reputation lookups
         asyncio.run(self._query_reputation_bulk())
 
     def stop(self):
-        """Stops the process and prints final stats."""
+        """Stops the process and prints final statistics."""
         if not self.is_running:
             return
-
         self.is_running = False
         total_time = time.time() - self.start_time
+        # Queries per second (QPS)
         qps = self.domains_processed / total_time if total_time > 0 else 0
 
         print("\n--- Final Statistics ---")
@@ -80,19 +132,20 @@ class TrafficReplayManager:
         print(f"Query rate (QPS): {qps:.2f}")
 
     def graceful_shutdown(self, signum, frame):
-        """Handles graceful shutdown on Ctrl+C."""
+        """Handle Ctrl+C or termination signals for safe shutdown."""
         print(f"\nReceived signal: {signum}")
         print("Exiting gracefully...")
         self.is_running = False
 
 
+# -----------------------------
+# Entry point of the script
+# -----------------------------
 if __name__ == "__main__":
-    file_path = "pcap_mid.pcap"
+    file_path = "pcap_mid.pcap"  # Example PCAP file
     manager = TrafficReplayManager(file_path)
 
-    # Attach the signal handler to Ctrl+C
+    # Register signal handler for Ctrl+C
     signal.signal(signal.SIGINT, manager.graceful_shutdown)
-
     print("Press Ctrl+C to trigger the signal handler.")
     manager.start()
-

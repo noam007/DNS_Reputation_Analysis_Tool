@@ -14,6 +14,7 @@ Assignment Tasks
 Develop a component to reliably re-play DNS traffic from PCAP files.
 Requirements:
      Lifecycle management: start, monitor, and stop replay.
+
      Real-time statistics:
     o Packets sent
     o Errors encountered
