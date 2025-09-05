@@ -1,7 +1,3 @@
-# =============================
-# DNS Traffic Reputation Tool
-# =============================
-
 import asyncio
 import signal
 import time
@@ -9,9 +5,6 @@ import aiohttp
 from scapy.all import PcapReader, DNS, DNSQR
 from reputation_engine import Reputation  # פונקציה אסינכרונית לבדיקת מוניטין
 
-# =============================
-# TrafficReplayManager Class
-# =============================
 class TrafficReplayManager:
     def __init__(self, file_path):
         # -------------------------
@@ -25,16 +18,8 @@ class TrafficReplayManager:
         self.is_running = True            # דגל לעצירה עדינה
         self.cache = {}                   # Cache בסיסי: דומיין -> תוצאה
 
-    # =============================
-    # Extract DNS Domains from PCAP
-    # =============================
     def extract_domains(self):
-        """
-        קריאת קובץ PCAP וחילוץ דומיינים מתוך בקשות DNS
-        - בדיקה של דגל is_running לעצירה בזמן אמת
-        - מעקב סטטיסטיקות בזמן הריצה (כל 50 חבילות)
-        """
-        try:
+       try:
             for pkt in PcapReader(self.file_path):
                 if not self.is_running:       # עצירה עדינה
                     print("Stopping PCAP processing...")
@@ -51,18 +36,14 @@ class TrafficReplayManager:
                     except Exception:
                         self.errors += 1
 
-                # מעקב בזמן אמת כל 50 חבילות
-                if self.packets_sent % 50 == 0:
+                if self.packets_sent % 50 == 0:      # האם מתחלק ב 50 ללא שארית
                     print(f"[Live Stats] Packets: {self.packets_sent}, Domains: {self.domains_processed}, Errors: {self.errors}")
 
-        except FileNotFoundError:
-            print(f"File not found: {self.file_path}")
-        except Exception as e:
-            print(f"Error reading PCAP: {e}")
+       except FileNotFoundError:
+           print(f"File not found: {self.file_path}")
+       except Exception as e:
+           print(f"Error reading PCAP: {e}")
 
-    # =============================
-    # Query Single Domain with Timeout + Retry + Cache
-    # =============================
     async def query_domain_with_retry(self, session, domain, retries=3, timeout=10):
         """
         קריאה אסינכרונית למודול Reputation עם:
@@ -89,6 +70,7 @@ class TrafficReplayManager:
                     result = {"domain": domain, "error": str(e)}
                     self.cache[domain] = result
                     return result
+        return None
 
     # =============================
     # Query All Domains Asynchronously

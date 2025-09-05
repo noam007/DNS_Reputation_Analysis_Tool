@@ -1,0 +1,14 @@
+[
+    {
+        "domain": "2.1.168.192.in-addr.arpa",
+        "reputation": 0,
+        "categories": {},
+        "stats": {
+            "malicious": 0,
+            "suspicious": 0,
+            "undetected": 32,
+            "harmless": 63,
+            "timeout": 0
+        }
+    }
+]

@@ -5,11 +5,7 @@ import aiohttp
 from scapy.all import PcapReader, DNS, DNSQR
 from reputation_engine import Reputation  # Custom module to check domain reputation
 
-# -----------------------------
-# Simple cache for domain results
-# -----------------------------
 class ReputationCache:
-    """Simple cache with TTL (time-to-live) for storing reputation results of domains."""
 
     def __init__(self, ttl_seconds=3600):
         self.ttl = ttl_seconds
@@ -138,9 +134,6 @@ class TrafficReplayManager:
         self.is_running = False
 
 
-# -----------------------------
-# Entry point of the script
-# -----------------------------
 if __name__ == "__main__":
     file_path = "pcap_mid.pcap"  # Example PCAP file
     manager = TrafficReplayManager(file_path)
