@@ -4,8 +4,10 @@ import time
 from reputation_engine import Reputation
 
 class AsyncQueryManager:
-    def __init__(self, cache):
+    def __init__(self, cache, rps):
         self.cache = cache
+        self.rps = rps
+        self.delay = 1 / rps  # זמן המתנה בין בקשות
 
     async def query_domain_with_retry(self, session, domain, retries=3, timeout=10):
         if domain in self.cache:
@@ -20,6 +22,7 @@ class AsyncQueryManager:
                 end = time.time()
                 result["response_time"] = end - start  # הוספת זמן תגובה לכל דומיין
                 self.cache[domain] = result
+                await asyncio.sleep(self.delay)  # ← מחכה בין בקשות
                 return result
             except Exception as e:
                 attempt += 1

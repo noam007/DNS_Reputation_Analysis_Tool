@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     # 2. שאילת מוניטין
     print("Starting Reputation queries...")
-    query_manager = AsyncQueryManager(manager.cache)
+    query_manager = AsyncQueryManager(manager.cache, rps=5)    # 5 requests per second
     asyncio.run(query_manager.query_domains(manager.domains))
     results = asyncio.run(query_manager.query_domains(manager.domains))
 
