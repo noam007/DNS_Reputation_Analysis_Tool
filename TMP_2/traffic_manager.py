@@ -1,4 +1,4 @@
-# PCAP מה DNS מחלץ
+# Extracts DNS domains from PCAP
 
 import time
 import signal
@@ -39,4 +39,3 @@ class TrafficReplayManager:
             print(f"File not found: {self.file_path}")
         except Exception as e:
             print(f"Error reading PCAP: {e}")
-

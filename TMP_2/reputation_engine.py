@@ -1,4 +1,4 @@
-# DNS בודק מוניטין של כל
+# DNS reputation checker for all domains
 
 # this file is reputation_engine.py
 # import aiohttp
@@ -15,16 +15,16 @@ import json
 # HEADERS = {"Authorization": "Token I_am_under_stress_when_I_test"}
 
 
-all_results = []  # רשימה גלובלית לאגירת כל התוצאות
+all_results = []  # global list to store all results
 
 def append_result(result):
-    """מוסיפה dict אחד לרשימת כל התוצאות"""
+    """Add a single dict to the list of all results"""
     all_results.append(result)
     print(f"all_results ******************   {all_results}")
 
 
 def save_results_json(json_file="results.json"):
-    """שומר את כל התוצאות לקובץ JSON"""
+    """Save all results to a JSON file"""
     with open(json_file, "w", encoding="utf-8") as f:
         json.dump(all_results, f, indent=4, ensure_ascii=False)
     print(f"Results saved to '{json_file}'")
@@ -50,7 +50,6 @@ async def Reputation(session, domain):
                 append_result(result)
                 return result
 
-
             elif response.status == 429:
                 # Rate limit hit → wait and retry
                 print(f"Rate limit hit for {domain}, retrying in 15s...")
@@ -60,4 +59,3 @@ async def Reputation(session, domain):
                 return {"domain": domain, "error": response.status}
     except Exception as e:
         return {"domain": domain, "error": str(e)}
-

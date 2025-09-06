@@ -7,7 +7,7 @@ class AsyncQueryManager:
     def __init__(self, cache, rps):
         self.cache = cache
         self.rps = rps
-        self.delay = 1 / rps  # זמן המתנה בין בקשות
+        self.delay = 1 / rps  # wait time between requests
 
     async def query_domain_with_retry(self, session, domain, retries=3, timeout=10):
         if domain in self.cache:
@@ -20,9 +20,9 @@ class AsyncQueryManager:
                 start = time.time()
                 result = await asyncio.wait_for(Reputation(session, domain), timeout=timeout)
                 end = time.time()
-                result["response_time"] = end - start  # הוספת זמן תגובה לכל דומיין
+                result["response_time"] = end - start  # add response time for each domain
                 self.cache[domain] = result
-                await asyncio.sleep(self.delay)  # ← מחכה בין בקשות
+                await asyncio.sleep(self.delay)  # ← wait between requests
                 return result
             except Exception as e:
                 attempt += 1
@@ -42,4 +42,4 @@ class AsyncQueryManager:
             for r in results:
                 print(r if not isinstance(r, Exception) else f"Error: {r}")
 
-            return results  # ← חשוב! מחזיר את התוצאות
+            return results  # ← important! returns all results

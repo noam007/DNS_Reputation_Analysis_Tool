@@ -10,8 +10,8 @@ def graceful_shutdown(manager, signum, frame):
 
 def save_results_json(results, json_file="results.json"):
     """
-    results: רשימה של dict (מהפונקציה Reputation)
-    json_file: שם הקובץ לשמירה
+    results: list of dicts (from the Reputation function)
+    json_file: filename to save
     """
     with open(json_file, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=4, ensure_ascii=False)
