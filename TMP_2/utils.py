@@ -3,10 +3,10 @@ import csv
 import statistics
 
 
-def graceful_shutdown(manager, signum, frame):
+def graceful_shutdown(manager,  query_manager, signum, frame):
     print(f"\nCtrl+C detected (signal {signum})! Stopping gracefully...")
-    manager.is_running = False
-
+    manager.stop_event.set()
+    query_manager.cancel_all_tasks()
 
 def save_results_json(results, json_file="results.json"):
     """

@@ -1,13 +1,15 @@
 import asyncio
-import aiohttp
 import time
+
+import aiohttp
+from asynciolimiter import Limiter
+
 from reputation_engine import Reputation
 
 class AsyncQueryManager:
-    def __init__(self, cache, rps):
-        self.cache = cache
-        self.rps = rps
-        self.delay = 1 / rps  # wait time between requests
+    def __init__(self, rps):
+        self.cache = {}
+        self.limiter = Limiter(rps)
 
     async def query_domain_with_retry(self, session, domain, retries=3, timeout=10):
         if domain in self.cache:
@@ -17,6 +19,7 @@ class AsyncQueryManager:
         attempt = 0
         while attempt < retries:
             try:
+                await self.limiter.wait()
                 start = time.time()
                 result = await asyncio.wait_for(Reputation(session, domain), timeout=timeout)
                 end = time.time()
@@ -43,3 +46,12 @@ class AsyncQueryManager:
                 print(r if not isinstance(r, Exception) else f"Error: {r}")
 
             return results  # ← important! returns all results
+
+    @staticmethod
+    def cancel_all_tasks():
+        # get all tasks
+        tasks = asyncio.all_tasks()
+        # cancel all tasks
+        for task in tasks:
+            # request the task cancel
+            task.cancel()

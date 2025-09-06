@@ -1,7 +1,6 @@
 # Extracts DNS domains from PCAP
 
-import time
-import signal
+from threading import Event
 from scapy.all import PcapReader, DNS, DNSQR
 
 class TrafficReplayManager:
@@ -11,13 +10,12 @@ class TrafficReplayManager:
         self.packets_sent = 0
         self.domains_processed = 0
         self.errors = 0
-        self.is_running = True
-        self.cache = {}
+        self.stop_event = Event()
 
     def extract_domains(self):
         try:
             for pkt in PcapReader(self.file_path):
-                if not self.is_running:
+                if self.stop_event.is_set():
                     print("Stopping PCAP processing...")
                     break
 
