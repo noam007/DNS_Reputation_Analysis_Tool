@@ -3,8 +3,8 @@ import time
 import signal
 from traffic_manager import TrafficReplayManager
 from async_queries import AsyncQueryManager
-from utils import graceful_shutdown, final_statistics, save_results_json
-from reputation_engine import save_results_json
+from utils import graceful_shutdown, final_statistics, save_results_csv
+
 
 
 if __name__ == "__main__":
@@ -29,4 +29,4 @@ if __name__ == "__main__":
     # 3. סטטיסטיקות סופיות
     total_time = time.time() - start_time
     final_statistics(manager, results, total_time)
-    save_results_json(results)
+    save_results_csv(results, csv_file="results.csv", source_file=file_path)

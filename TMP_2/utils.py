@@ -1,5 +1,7 @@
 import json
+import csv
 import statistics
+
 
 def graceful_shutdown(manager, signum, frame):
     print(f"\nCtrl+C detected (signal {signum})! Stopping gracefully...")
@@ -14,6 +16,23 @@ def save_results_json(results, json_file="results.json"):
     with open(json_file, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=4, ensure_ascii=False)
     print(f"Results saved to '{json_file}'")
+
+
+def save_results_csv(results, csv_file="results.csv", source_file="pcap_single.pcap"):
+
+    with open(csv_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Domain", "Reputation", "Classification", "Categories", "Source", "Response Time"])
+
+        for r in results:
+            domain = r.get("domain")
+            reputation = r.get("reputation", 0)
+            classification = "Trusted" if reputation >= 61 else "Untrusted"
+            categories = ",".join(r.get("categories", [])) if isinstance(r.get("categories"), list) else r.get("categories", "{}")
+            response_time = r.get("response_time", 0)
+
+            writer.writerow([domain, reputation, classification, categories, source_file, f"{response_time:.3f}"])
+    print(f"Results saved to CSV '{csv_file}'")
 
 
 def final_statistics(manager, results, total_time):
