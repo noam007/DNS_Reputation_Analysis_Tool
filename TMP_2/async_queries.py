@@ -1,5 +1,6 @@
 import asyncio
 import aiohttp
+import time
 from reputation_engine import Reputation
 
 class AsyncQueryManager:
@@ -14,14 +15,17 @@ class AsyncQueryManager:
         attempt = 0
         while attempt < retries:
             try:
+                start = time.time()
                 result = await asyncio.wait_for(Reputation(session, domain), timeout=timeout)
+                end = time.time()
+                result["response_time"] = end - start  # הוספת זמן תגובה לכל דומיין
                 self.cache[domain] = result
                 return result
             except Exception as e:
                 attempt += 1
                 print(f"[Retry {attempt}] Domain {domain} failed: {e}")
                 if attempt >= retries:
-                    result = {"domain": domain, "error": str(e)}
+                    result = {"domain": domain, "error": str(e), "response_time": None}
                     self.cache[domain] = result
                     return result
         return None
@@ -34,3 +38,5 @@ class AsyncQueryManager:
             print("\n--- Reputation Results ---")
             for r in results:
                 print(r if not isinstance(r, Exception) else f"Error: {r}")
+
+            return results  # ← חשוב! מחזיר את התוצאות

@@ -9,6 +9,7 @@
             "undetected": 32,
             "harmless": 63,
             "timeout": 0
-        }
+        },
+        "response_time": 0.360271692276001
     }
 ]
