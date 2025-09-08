@@ -3,8 +3,13 @@
 from threading import Event
 from scapy.all import PcapReader, DNS, DNSQR
 
+
 class TrafficReplayManager:
     def __init__(self, file_path):
+        """
+        Initializes the TrafficReplayManager with a PCAP file path.
+        Sets up tracking for domains, packets, errors, and a stop event.
+        """
         self.file_path = file_path
         self.domains = []
         self.packets_sent = 0
@@ -13,6 +18,13 @@ class TrafficReplayManager:
         self.stop_event = Event()
 
     def extract_domains(self):
+        """
+        Reads packets from the given PCAP file and extracts DNS query domains.
+        - Stops gracefully if stop_event is set.
+        - Increments counters for packets, domains, and errors.
+        - Prints live statistics every 50 packets.
+        - Handles file not found and other reading errors.
+        """
         try:
             for pkt in PcapReader(self.file_path):
                 if self.stop_event.is_set():

@@ -3,15 +3,22 @@ import csv
 import statistics
 
 
-def graceful_shutdown(manager,  query_manager, signum, frame):
+def graceful_shutdown(manager, query_manager, signum, frame):
+    """
+    Handles Ctrl+C (SIGINT) for graceful shutdown.
+    - Sets the stop_event in the traffic manager to stop packet processing.
+    - Cancels all running asyncio tasks in the query manager.
+    """
     print(f"\nCtrl+C detected (signal {signum})! Stopping gracefully...")
     manager.stop_event.set()
     query_manager.cancel_all_tasks()
 
+
 def save_results_json(results, json_file="results.json"):
     """
-    results: list of dicts (from the Reputation function)
-    json_file: filename to save
+    Saves reputation query results to a JSON file.
+    - results: list of dictionaries (from the Reputation function).
+    - json_file: name of the output JSON file (default: results.json).
     """
     with open(json_file, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=4, ensure_ascii=False)
@@ -19,7 +26,19 @@ def save_results_json(results, json_file="results.json"):
 
 
 def save_results_csv(results, csv_file="results.csv", source_file="pcap_single.pcap"):
-
+    """
+    Saves reputation query results to a CSV file.
+    - results: list of dictionaries with domain reputation data.
+    - csv_file: name of the output CSV file (default: results.csv).
+    - source_file: name of the source PCAP file for reference.
+    Includes extra fields:
+        * Domain
+        * Reputation score
+        * Classification (Trusted/Untrusted)
+        * Categories (comma-separated list)
+        * Source file
+        * Response time (seconds, 3 decimals)
+    """
     with open(csv_file, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["Domain", "Reputation", "Classification", "Categories", "Source", "Response Time"])
@@ -36,6 +55,12 @@ def save_results_csv(results, csv_file="results.csv", source_file="pcap_single.p
 
 
 def final_statistics(manager, results, total_time):
+    """
+    Computes and prints final statistics after processing.
+    - Calculates total requests, unique domains, query rate (QPS), and response times.
+    - Prints summary of packets processed, domains processed, and errors.
+    - Displays response time (average, min, max).
+    """
     response_times = [r.get("response_time") for r in results if r.get("response_time") is not None]
     total_requests = len(results)
     total_domains = len(set(manager.domains))
@@ -48,7 +73,7 @@ def final_statistics(manager, results, total_time):
     print(f"Packets processed: {manager.packets_sent}")
     print(f"Domains processed: {manager.domains_processed}")
     print(f"Errors encountered: {manager.errors}")
-    print(f"Query rate (QPS): {qps:.2f}",'\n')
+    print(f"Query rate (QPS): {qps:.2f}", '\n')
 
     print(f"Total requests: {total_requests}")
     print(f"Total unique domains: {total_domains}")
