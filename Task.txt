@@ -20,7 +20,7 @@ The goal of this project is to develop a DNS traffic reputation analysis system 
        ↓
     Reputation API
        ↓
-    Results + Monitoring + Logs
+    Results + Monitoring + Logs 
 
 Assignment Tasks
 1. Traffic Re-play Manager
